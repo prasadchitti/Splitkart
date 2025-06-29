@@ -20,20 +20,21 @@
       SplitKart
     </h2>
 
+    <!-- Button Row -->
     <div class="row mb-3">
-        <div class="col-auto me-auto">
-          <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmClearModal">
-            🗑️ Clear All Data
-          </button>
-        </div>
-        <div class="col-auto">
-          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#expenseModal">
-            ➕ Add Expense
-          </button>
-        </div>
+      <div class="col-auto me-auto">
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmClearModal">
+          🗑️ Clear All Data
+        </button>
       </div>
-      
+      <div class="col-auto">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#expenseModal">
+          ➕ Add Expense
+        </button>
+      </div>
+    </div>
 
+    <!-- Table -->
     <div class="table-responsive">
       <table class="table table-bordered align-middle">
         <thead class="table-light" id="headerRow">
@@ -41,7 +42,7 @@
             <th>Item</th>
             <th>Amount</th>
             <th>Payer</th>
-            <!-- Participant columns inserted by JS -->
+            <!-- JS inserts participants -->
             <th>Delete</th>
           </tr>
         </thead>
@@ -49,6 +50,7 @@
       </table>
     </div>
 
+    <!-- Split Button -->
     <button class="btn btn-primary w-100 mt-3" onclick="calculateSplit()">Split & Show Summary</button>
     <div class="mt-4" id="result"></div>
   </div>
@@ -65,17 +67,20 @@
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="form-label">Item</label>
-              <input type="text" class="form-control" id="modalItem" required />
+              <input list="itemSuggestions" type="text" class="form-control" id="modalItem" required />
+              <datalist id="itemSuggestions"></datalist>
             </div>
             <div class="col-md-6">
               <label class="form-label">Amount (₹)</label>
               <input type="number" class="form-control" id="modalAmount" required min="1" step="1" />
             </div>
           </div>
+
           <div class="mb-3">
             <label class="form-label">Paid by</label>
             <select class="form-select" id="modalPayer" required></select>
           </div>
+
           <div>
             <label class="form-label">Quantities (multiples of 0.25)</label>
             <div class="row" id="modalQuantities"></div>
@@ -88,7 +93,7 @@
     </div>
   </div>
 
-  <!-- Confirm Clear Modal -->
+  <!-- Clear Confirm Modal -->
   <div class="modal fade" id="confirmClearModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -107,6 +112,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="splitkart.js"></script>
 </body>

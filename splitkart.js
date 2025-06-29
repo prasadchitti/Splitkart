@@ -2,6 +2,11 @@ const participants = ['Siva', 'Medicherla Sai', 'Chitti Sai', 'Eemani Sai'];
 const STORAGE_KEY = 'splitkart-expenses';
 const items = [];
 
+const predefinedItemNames = [
+  'Potato', 'Tomato', 'Brinjal', 'Ladies Finger', 'Ivy Guard',
+  'Flowers', 'Bitter Guard', 'Ginger', 'Garlic', 'Leafy Vegetables','Bottle Guard','Raddish'
+];
+
 function renderHeader() {
   const row = document.querySelector('#headerRow tr');
   participants.forEach(p => {
@@ -21,8 +26,8 @@ function renderTable() {
       <td>${item.name}</td>
       <td>₹${item.amount}</td>
       <td>${item.payer}</td>
-      ${participants.map(p => `<td class="hide-mobile text-center">${item.quantities[p] || 0}</td>`).join('')}
-     <td class="text-center">
+      ${participants.map(p => `<td class="text-center">${item.quantities[p] || 0}</td>`).join('')}
+      <td class="text-center">
         <button class="btn btn-sm btn-danger" onclick="deleteItem(${index})">✖️</button>
       </td>
     `;
@@ -77,6 +82,16 @@ function buildModalFields() {
     `;
     qtyContainer.appendChild(col);
   });
+
+  const datalist = document.getElementById('itemSuggestions');
+  if (datalist) {
+    datalist.innerHTML = '';
+    predefinedItemNames.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      datalist.appendChild(option);
+    });
+  }
 }
 
 function validateModal() {
@@ -133,11 +148,9 @@ document.getElementById('expenseForm').addEventListener('submit', e => {
 });
 
 function calculateSimplifiedTransactions(balancesObj) {
-  const balances = Object.fromEntries(
-    Object.entries(balancesObj).map(([k, v]) => [k, +v.toFixed(2)])
-  );
-
+  const balances = Object.fromEntries(Object.entries(balancesObj).map(([k, v]) => [k, +v.toFixed(2)]));
   const transactions = [];
+
   const debtors = Object.entries(balances).filter(([_, b]) => b < -0.01).sort((a, b) => a[1] - b[1]);
   const creditors = Object.entries(balances).filter(([_, b]) => b > 0.01).sort((a, b) => b[1] - a[1]);
 
@@ -163,7 +176,7 @@ function calculateSplit() {
     alert("📭 No expenses added yet. Please add at least one entry to calculate the split.");
     return;
   }
-  
+
   const balances = {};
   participants.forEach(p => balances[p] = 0);
 
@@ -173,7 +186,6 @@ function calculateSplit() {
   items.forEach(item => {
     const { amount, payer, quantities } = item;
     const totalQty = Object.values(quantities).reduce((s, q) => s + q, 0);
-    
     if (!Number.isInteger(amount) || totalQty === 0) {
       valid = false;
       return;
@@ -189,7 +201,7 @@ function calculateSplit() {
   });
 
   if (!valid) {
-    alert("⚠️ One or more entries are invalid: ensure all amounts are whole numbers and at least one quantity is specified.");
+    alert("⚠️ Please ensure amounts are whole and at least one quantity is entered.");
     return;
   }
 

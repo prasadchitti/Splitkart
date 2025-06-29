@@ -26,7 +26,7 @@ function renderTable() {
       <td>${item.name}</td>
       <td>₹${item.amount}</td>
       <td>${item.payer}</td>
-      ${participants.map(p => `<td class="text-center">${item.quantities[p] || 0}</td>`).join('')}
+      ${participants.map(p => `<td class="hide-mobile text-center">${item.quantities[p] || 0}</td>`).join('')}
       <td class="text-center">
         <button class="btn btn-sm btn-danger" onclick="deleteItem(${index})">✖️</button>
       </td>

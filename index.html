@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SplitKart</title>
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170576.png" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    .qty-input { width: 60px; text-align: center; padding: 2px 6px; }
+    .collapse-body { background: #f8f9fa; }
+    .was-invalid { border-color: #dc3545 !important; }
+    @media (max-width: 768px) {
+      .hide-mobile { display: none !important; }
+      .collapse-body { padding: 0.5rem 1rem; }
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h2 class="text-center mb-4">
+      <img src="https://cdn-icons-png.flaticon.com/512/1170/1170576.png" width="32" height="32" alt="Cart Icon" class="me-2" />
+      SplitKart
+    </h2>
+
+    <div class="text-end mb-3">
+      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#expenseModal">➕ Add Expense</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light" id="headerRow">
+          <tr>
+            <th>Item</th>
+            <th>Amount</th>
+            <th>Payer</th>
+            <!-- Quantity columns will be inserted via JS -->
+            <th class="hide-mobile">Action</th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn btn-primary w-100 mt-3" onclick="calculateSplit()">Split & Show Summary</button>
+    <div class="mt-4" id="result"></div>
+  </div>
+
+  <!-- Expense Modal -->
+  <div class="modal fade" id="expenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <form class="modal-content" id="expenseForm">
+        <div class="modal-header">
+          <h5 class="modal-title">Expense</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Item</label>
+              <input type="text" class="form-control" id="modalItem" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Amount (₹)</label>
+              <input type="number" class="form-control" id="modalAmount" required min="1" step="1" />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Paid by</label>
+            <select class="form-select" id="modalPayer" required>
+              <option value="">-- Choose --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label">Quantities (in multiples of 0.25)</label>
+            <div class="row" id="modalQuantities">
+              <!-- Filled dynamically -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="submit" id="modalSave" disabled>Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="splitkart.js"></script>
+</body>
+</html>

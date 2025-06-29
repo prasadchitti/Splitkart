@@ -152,6 +152,16 @@ function calculateSimplifiedTransactions(balancesObj) {
   return transactions;
 }
 
+function clearAllData() {
+  if (confirm("This will remove all stored data. Are you sure?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    items.length = 0;
+    renderTable();
+    document.getElementById('result').innerHTML = '';
+  }
+}
+
+
 function calculateSplit() {
   const balances = {};
   participants.forEach(p => balances[p] = 0);

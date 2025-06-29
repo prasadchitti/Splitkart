@@ -1,4 +1,4 @@
-const participants = ['Siva', 'MedicherlaSai', 'ChittiSai', 'EemaniSai'];
+const participants = ['Siva', 'Medicherla Sai', 'Chitti Sai', 'Eemani Sai'];
 const STORAGE_KEY = 'splitkart-expenses';
 const items = [];
 
@@ -21,10 +21,8 @@ function renderTable() {
       <td>${item.name}</td>
       <td>₹${item.amount}</td>
       <td>${item.payer}</td>
-      ${participants.map(p =>
-        `<td class="hide-mobile text-center">${item.quantities[p] || 0}</td>`
-      ).join('')}
-      <td class="hide-mobile text-center">
+      ${participants.map(p => `<td class="hide-mobile text-center">${item.quantities[p] || 0}</td>`).join('')}
+     <td class="text-center">
         <button class="btn btn-sm btn-danger" onclick="deleteItem(${index})">✖️</button>
       </td>
     `;
@@ -53,6 +51,14 @@ function deleteItem(index) {
   items.splice(index, 1);
   saveToLocal();
   renderTable();
+}
+
+function confirmClear() {
+  localStorage.removeItem(STORAGE_KEY);
+  items.length = 0;
+  renderTable();
+  document.getElementById('result').innerHTML = '';
+  bootstrap.Modal.getInstance(document.getElementById('confirmClearModal')).hide();
 }
 
 function buildModalFields() {
@@ -152,17 +158,12 @@ function calculateSimplifiedTransactions(balancesObj) {
   return transactions;
 }
 
-function clearAllData() {
-  if (confirm("This will remove all stored data. Are you sure?")) {
-    localStorage.removeItem(STORAGE_KEY);
-    items.length = 0;
-    renderTable();
-    document.getElementById('result').innerHTML = '';
-  }
-}
-
-
 function calculateSplit() {
+  if (items.length === 0) {
+    alert("📭 No expenses added yet. Please add at least one entry to calculate the split.");
+    return;
+  }
+  
   const balances = {};
   participants.forEach(p => balances[p] = 0);
 
@@ -172,6 +173,7 @@ function calculateSplit() {
   items.forEach(item => {
     const { amount, payer, quantities } = item;
     const totalQty = Object.values(quantities).reduce((s, q) => s + q, 0);
+    
     if (!Number.isInteger(amount) || totalQty === 0) {
       valid = false;
       return;

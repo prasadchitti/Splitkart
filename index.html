@@ -7,12 +7,9 @@
   <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/1170/1170576.png" type="image/png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
-    .qty-input { width: 60px; text-align: center; padding: 2px 6px; }
-    .collapse-body { background: #f8f9fa; }
     .was-invalid { border-color: #dc3545 !important; }
     @media (max-width: 768px) {
       .hide-mobile { display: none !important; }
-      .collapse-body { padding: 0.5rem 1rem; }
     }
   </style>
 </head>
@@ -23,9 +20,19 @@
       SplitKart
     </h2>
 
-    <div class="text-end mb-3">
-      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#expenseModal">➕ Add Expense</button>
-    </div>
+    <div class="row mb-3">
+        <div class="col-auto me-auto">
+          <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmClearModal">
+            🗑️ Clear All Data
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#expenseModal">
+            ➕ Add Expense
+          </button>
+        </div>
+      </div>
+      
 
     <div class="table-responsive">
       <table class="table table-bordered align-middle">
@@ -34,8 +41,8 @@
             <th>Item</th>
             <th>Amount</th>
             <th>Payer</th>
-            <!-- Quantity columns will be inserted via JS -->
-            <th class="hide-mobile">Action</th>
+            <!-- Participant columns inserted by JS -->
+            <th>Delete</th>
           </tr>
         </thead>
         <tbody id="itemsBody"></tbody>
@@ -43,8 +50,6 @@
     </div>
 
     <button class="btn btn-primary w-100 mt-3" onclick="calculateSplit()">Split & Show Summary</button>
-    <button class="btn btn-outline-danger w-100 mt-2" onclick="clearAllData()">🗑️ Clear All Data</button>
-
     <div class="mt-4" id="result"></div>
   </div>
 
@@ -67,25 +72,38 @@
               <input type="number" class="form-control" id="modalAmount" required min="1" step="1" />
             </div>
           </div>
-
           <div class="mb-3">
             <label class="form-label">Paid by</label>
-            <select class="form-select" id="modalPayer" required>
-              <option value="">-- Choose --</option>
-            </select>
+            <select class="form-select" id="modalPayer" required></select>
           </div>
-
           <div>
-            <label class="form-label">Quantities (in multiples of 0.25)</label>
-            <div class="row" id="modalQuantities">
-              <!-- Filled dynamically -->
-            </div>
+            <label class="form-label">Quantities (multiples of 0.25)</label>
+            <div class="row" id="modalQuantities"></div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-primary" type="submit" id="modalSave" disabled>Save</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Modal -->
+  <div class="modal fade" id="confirmClearModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Clear All Data</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete all stored data? This cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmClear()">Yes, Clear All</button>
+        </div>
+      </div>
     </div>
   </div>
 

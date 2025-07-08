@@ -1,23 +1,69 @@
 const participants = ['Siva', 'Medicherla Sai', 'Chitti Sai', 'Eemani Sai'];
-
-
 let currentGroup = null;
 let items = [];
+let unsubscribe = null;
 
 function normalizeGroupName(name) {
   const trimmed = name.trim().toLowerCase();
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
-
-
-// 👉 Group Management
-function normalizeGroupName(name) {
-  const trimmed = name.trim().toLowerCase();
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+function renderHeader() {
+  const row = document.querySelector('#headerRow tr');
+  row.innerHTML = `
+    <th>Item</th><th>Amount</th><th>Payer</th>
+    ${participants.map(p => `<th class="hide-mobile text-center">${p}</th>`).join('')}
+    <th>Action</th>`;
+}
+function showToast(message, type = 'success') {
+  const toast = document.createElement('div');
+  toast.className = `toast text-bg-${type} border-0 toast-animated show`;
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  Object.assign(toast.style, {
+    position: 'fixed',
+    top: '1rem',
+    right: '1rem',
+    zIndex: 1055,
+    minWidth: '260px',
+    boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.15)'
+  });
+  toast.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body">${message}</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>`;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 500);
+  }, 3000);
 }
 
+// 🔁 Real-time listener
+function loadGroup(name) {
+  if (unsubscribe) unsubscribe(); // cleanup old listener
+  currentGroup = name;
+  renderHeader();
+  unsubscribe = db.collection('groups').doc(name).onSnapshot(doc => {
+    const data = doc.data();
+    if (data?.expenses) {
+      items = data.expenses;
+      renderTable();
+    }
+  });
+}
+
+// 🔥 Save updated expense list
+function saveToFirestore() {
+  if (!currentGroup) return;
+  db.collection('groups').doc(currentGroup).update({ expenses: items });
+}
+
+// ➕ Create group (modal)
 document.getElementById('createGroupBtn').addEventListener('click', () => {
-  let rawName = document.getElementById('newGroupName').value;
+  const rawName = document.getElementById('newGroupName').value;
   const name = normalizeGroupName(rawName);
 
   if (name.length < 3) {
@@ -44,87 +90,23 @@ document.getElementById('createGroupBtn').addEventListener('click', () => {
   });
 });
 
-
-
-
-
-function loadGroup(name) {
-  currentGroup = name;
-  if (!name) return;
-  db.collection('groups').doc(name).get().then(doc => {
-    if (doc.exists) {
-      items = doc.data().expenses || [];
-      renderTable();
-    } else {
-      alert('Group not found');
-    }
-  });
-}
-
+// 🧠 Populate group dropdown
 function fetchAllGroups(callback = () => {}) {
   db.collection('groups').get().then(snapshot => {
     const selector = document.getElementById('groupSelector');
     selector.innerHTML = `<option value="">-- Select Expense Group --</option>`;
-
-    let groups = [];
+    const groups = [];
     snapshot.forEach(doc => groups.push(doc.id));
     groups.sort();
-
     groups.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      selector.appendChild(opt);
+      selector.innerHTML += `<option value="${name}">${name}</option>`;
     });
-
-    // Add Create New
-    const createOpt = document.createElement('option');
-    createOpt.value = '__new__';
-    createOpt.textContent = '➕ Create New Group';
-    selector.appendChild(createOpt);
-
+    selector.innerHTML += `<option value="__new__">➕ Create New Group</option>`;
     callback();
   });
 }
 
-
-function confirmDeleteGroup(name) {
-  const modal = new bootstrap.Modal(document.getElementById('deleteGroupModal'));
-  modal.show();
-
-  document.getElementById('confirmDeleteGroupBtn').onclick = () => {
-    db.collection('groups').doc(name).delete().then(() => {
-      if (currentGroup === name) {
-        currentGroup = null;
-        items = [];
-        document.getElementById('result').innerHTML = '';
-        renderTable();
-      }
-      modal.hide();
-      fetchAllGroups();
-      showToast(`🗑️ Group '${name}' deleted.`, 'success');
-    }).catch(() => {
-      showToast("❌ Failed to delete group.", 'danger');
-    });
-  };
-}
-
-
-
-function saveToFirestore() {
-  if (!currentGroup) return;
-  db.collection('groups').doc(currentGroup).update({ expenses: items });
-}
-
-// 👉 UI Rendering
-function renderHeader() {
-  const row = document.querySelector('#headerRow tr');
-  row.innerHTML = `
-    <th>Item</th><th>Amount</th><th>Payer</th>
-    ${participants.map(p => `<th class="hide-mobile text-center">${p}</th>`).join('')}
-    <th>Action</th>`;
-}
-
+// 🔁 Table UI
 function renderTable() {
   const tbody = document.getElementById('itemsBody');
   tbody.innerHTML = '';
@@ -145,62 +127,52 @@ function renderTable() {
 function deleteItem(index) {
   items.splice(index, 1);
   saveToFirestore();
-  renderTable();
 }
 
 function confirmClear() {
   if (!currentGroup) return;
-
   if (items.length === 0) {
-    showToast("⚠️ Nothing to delete in this group.");
-    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmClearModal'));
-    modal?.hide();
+    showToast("⚠️ Nothing to delete.");
+    bootstrap.Modal.getInstance(document.getElementById('confirmClearModal'))?.hide();
     return;
   }
-
   db.collection('groups').doc(currentGroup).update({ expenses: [] }).then(() => {
-    items.length = 0;
-    renderTable();
-    document.getElementById('result').innerHTML = '';
-    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmClearModal'));
-    modal?.hide();
-    showToast("✅ Group expenses cleared successfully!");
+    showToast("✅ All expenses cleared.");
+    bootstrap.Modal.getInstance(document.getElementById('confirmClearModal'))?.hide();
   });
 }
 
+document.getElementById('groupSelector').addEventListener('change', e => {
+  const value = e.target.value;
+  if (value === '__new__') {
+    document.getElementById('newGroupName').value = '';
+    new bootstrap.Modal(document.getElementById('groupCreateModal')).show();
+  } else {
+    loadGroup(value);
+  }
+});
 
-function showToast(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast text-bg-${type} border-0 toast-animated show`;
-  toast.setAttribute('role', 'alert');
-  toast.setAttribute('aria-live', 'assertive');
-  toast.setAttribute('aria-atomic', 'true');
+document.addEventListener('DOMContentLoaded', () => {
+  renderHeader();
+  fetchAllGroups(); // 🟢 this loads groups into dropdown
+});
 
-  toast.style.position = 'fixed';
-  toast.style.top = '1rem';
-  toast.style.right = '1rem';
-  toast.style.zIndex = 1055;
-  toast.style.minWidth = '260px';
-  toast.style.boxShadow = '0 0.25rem 0.75rem rgba(0,0,0,0.15)';
+// 👉 Show and populate modal when "Add Expense" is clicked
+document.getElementById('addExpenseBtn').addEventListener('click', () => {
+  if (!currentGroup) {
+    showToast("⚠️ Please select a group before adding expenses.");
+    return;
+  }
+  buildModalFields();
+  document.getElementById('modalItem').value = '';
+  document.getElementById('modalAmount').value = '';
+  document.getElementById('modalPayer').value = '';
+  const modal = new bootstrap.Modal(document.getElementById('expenseModal'));
+  modal.show();
+  setTimeout(() => document.getElementById('modalItem').focus(), 200);
+});
 
-  toast.innerHTML = `
-    <div class="d-flex">
-      <div class="toast-body">${message}</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>`;
-
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-    toast.classList.add('hide');
-    setTimeout(() => toast.remove(), 500);
-  }, 3000);
-}
-
-
-
-// 👉 Modal & Form Handling
+// 👉 Build dynamic fields for participants
 function buildModalFields() {
   document.getElementById('modalPayer').innerHTML =
     '<option value="">-- Choose --</option>' +
@@ -216,17 +188,10 @@ function buildModalFields() {
       <input type="number" class="form-control modal-qty" step="0.25" min="0" data-name="${p}" />`;
     container.appendChild(div);
   });
-
-  const datalist = document.getElementById('itemSuggestions');
-  datalist.innerHTML = '';
-  predefinedItemNames.forEach(name => {
-    const option = document.createElement('option');
-    option.value = name;
-    datalist.appendChild(option);
-  });
 }
 
-function validateModal() {
+// 👉 Validate modal inputs
+document.getElementById('expenseForm').addEventListener('input', () => {
   const name = document.getElementById('modalItem').value.trim();
   const amount = parseFloat(document.getElementById('modalAmount').value);
   const payer = document.getElementById('modalPayer').value;
@@ -249,19 +214,9 @@ function validateModal() {
   });
 
   document.getElementById('modalSave').disabled = !(valid && hasQty);
-}
-
-// 👉 Expense Submission
-document.getElementById('expenseModal').addEventListener('show.bs.modal', () => {
-  buildModalFields();
-  document.getElementById('modalItem').value = '';
-  document.getElementById('modalAmount').value = '';
-  document.getElementById('modalPayer').value = '';
-  setTimeout(() => document.getElementById('modalItem').focus(), 200);
 });
 
-document.getElementById('expenseForm').addEventListener('input', validateModal);
-
+// 👉 Submit expense to Firestore
 document.getElementById('expenseForm').addEventListener('submit', e => {
   e.preventDefault();
   const name = document.getElementById('modalItem').value.trim();
@@ -276,16 +231,15 @@ document.getElementById('expenseForm').addEventListener('submit', e => {
   });
 
   items.push({ name, amount, payer, quantities: qtys });
-  bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
   saveToFirestore();
-  renderTable();
+  bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
 });
-
-// 👉 Split Calculation (unchanged)
+// 📊 Calculate who owes whom
 function calculateSimplifiedTransactions(balancesObj) {
-  const balances = Object.fromEntries(Object.entries(balancesObj).map(([k, v]) => [k, +v.toFixed(2)]));
+  const balances = Object.fromEntries(
+    Object.entries(balancesObj).map(([k, v]) => [k, +v.toFixed(2)])
+  );
   const transactions = [];
-
   const debtors = Object.entries(balances).filter(([_, b]) => b < -0.01).sort((a, b) => a[1] - b[1]);
   const creditors = Object.entries(balances).filter(([_, b]) => b > 0.01).sort((a, b) => b[1] - a[1]);
 
@@ -306,19 +260,18 @@ function calculateSimplifiedTransactions(balancesObj) {
   return transactions;
 }
 
+// 🧮 Main split logic
 function calculateSplit() {
   if (!items.length) {
-    alert("📭 No expenses yet.");
+    alert("📭 No expenses to split.");
     return;
   }
 
-  const balances = {};
-  participants.forEach(p => balances[p] = 0);
+  const balances = Object.fromEntries(participants.map(p => [p, 0]));
   let grandTotal = 0;
   let valid = true;
 
-  items.forEach(item => {
-    const { amount, payer, quantities } = item;
+  items.forEach(({ amount, payer, quantities }) => {
     const totalQty = Object.values(quantities).reduce((s, q) => s + q, 0);
     if (!Number.isInteger(amount) || totalQty === 0) {
       valid = false;
@@ -333,7 +286,7 @@ function calculateSplit() {
   });
 
   if (!valid) {
-    alert("⚠️ Invalid entries.");
+    alert("⚠️ Please correct invalid entries before calculating.");
     return;
   }
 
@@ -341,7 +294,7 @@ function calculateSplit() {
   let result = `<div class="alert alert-info"><strong>Total Spent:</strong> ₹${grandTotal.toFixed(0)}</div>`;
   result += `<h5>Who Owes Whom</h5><ul class="list-group">`;
 
-  if (simplified.length === 0) {
+  if (!simplified.length) {
     result += `<li class="list-group-item">All settled up! 🎉</li>`;
   } else {
     simplified.forEach(({ from, to, amount }) => {
@@ -349,8 +302,7 @@ function calculateSplit() {
     });
   }
 
-  result += `</ul>`;
-  result += `<div class="mt-3 text-center">
+  result += `</ul><div class="mt-3 text-center">
     <a class="btn btn-success w-100 d-inline-flex align-items-center justify-content-center gap-2"
        href="https://wa.me/?text=${encodeURIComponent(generateShareMessage(grandTotal, simplified))}" target="_blank">
       <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="20" height="20" alt="WhatsApp" />
@@ -361,94 +313,27 @@ function calculateSplit() {
   document.getElementById('result').innerHTML = result;
 }
 
+// 📝 Format WhatsApp summary
 function generateShareMessage(grandTotal, simplified) {
-  let message = `🛒 *SplitKart Summary*\nTotal Spent: ₹${grandTotal}\n\n💸 *Settlements:*\n`;
-  if (simplified.length === 0) {
-    message += `Everyone is settled. 🎉\n`;
+  let msg = `🛒 *SplitKart Summary*\nTotal Spent: ₹${grandTotal}\n\n💸 *Settlements:*\n`;
+  if (!simplified.length) {
+    msg += `Everyone is settled. 🎉\n`;
   } else {
     simplified.forEach(({ from, to, amount }) => {
-      message += `• ${from} owes ₹${amount.toFixed(2)} to ${to}\n`;
+      msg += `• ${from} owes ₹${amount.toFixed(2)} to ${to}\n`;
     });
   }
 
-  message += `\n📦 *Items Purchased:*\n`;
+  msg += `\n📦 *Items Purchased:*\n`;
   items.forEach(item => {
-    message += `• *${item.name}* – ₹${item.amount} (Paid by ${item.payer})\n`;
-    const lines = Object.entries(item.quantities)
+    msg += `• *${item.name}* – ₹${item.amount} (Paid by ${item.payer})\n`;
+    Object.entries(item.quantities)
       .filter(([_, q]) => q > 0)
-      .map(([name, q]) => `   - ${name}: ${q}`);
-    message += lines.join('\n') + '\n';
+      .forEach(([name, q]) => {
+        msg += `   - ${name}: ${q}\n`;
+      });
   });
 
-  return message;
+  return msg;
 }
-
-// 🔁 Initialize everything on load
-document.addEventListener('DOMContentLoaded', () => {
-  renderHeader();
-  fetchAllGroups();
-});
-
-document.getElementById('addExpenseBtn').addEventListener('click', () => {
-  if (!currentGroup) {
-    showToast("⚠️ Please select a group before adding expenses.");
-    return;
-  }
-
-  const modal = new bootstrap.Modal(document.getElementById('expenseModal'));
-  modal.show();
-});
-
-document.getElementById('clearAllBtn').addEventListener('click', () => {
-  if (!currentGroup) {
-    showToast("⚠️ Please select a group first.", "warning");
-    return;
-  }
-
-  const modal = new bootstrap.Modal(document.getElementById('confirmClearModal'));
-  modal.show();
-});
-
-document.getElementById('groupSelector').addEventListener('change', e => {
-  const value = e.target.value;
-  if (value === '__new__') {
-    document.getElementById('newGroupName').value = '';
-    const modal = new bootstrap.Modal(document.getElementById('groupCreateModal'));
-    modal.show();
-    return;
-  }
-
-  loadGroup(value);
-});
-
-// Show confirmation modal
-document.getElementById('deleteGroupBtn').addEventListener('click', () => {
-  if (!currentGroup) {
-    showToast("⚠️ Please select a group to delete.", "warning");
-    return;
-  }
-  const modal = new bootstrap.Modal(document.getElementById('deleteGroupModal'));
-  modal.show();
-});
-
-// Handle deletion confirmation
-document.getElementById('confirmDeleteGroupBtn').addEventListener('click', () => {
-  if (!currentGroup) return;
-
-  db.collection('groups').doc(currentGroup).delete().then(() => {
-    currentGroup = null;
-    items = [];
-    document.getElementById('groupSelector').value = '';
-    document.getElementById('result').innerHTML = '';
-    renderTable();
-    fetchAllGroups();
-
-    bootstrap.Modal.getInstance(document.getElementById('deleteGroupModal'))?.hide();
-    showToast("🗑️ Group deleted successfully.", "success");
-  }).catch(err => {
-    showToast("❌ Failed to delete group. Try again.", "danger");
-  });
-});
-
-
 

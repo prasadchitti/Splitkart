@@ -185,7 +185,11 @@ function buildModalFields() {
     div.className = 'col-sm-6 mb-2';
     div.innerHTML = `
       <label class="form-label small">${p}</label>
-      <input type="number" class="form-control modal-qty" step="0.25" min="0" data-name="${p}" />`;
+      <input type="tel" inputmode="decimal" pattern="[0-9]+(\.[0-9]{1,2})?" 
+       class="form-control modal-qty" data-name="${p}" />
+`;
+      // <input type="tel" inputmode="numeric" pattern="[0-9]*" class="form-control modal-qty" data-name="${p}" />
+
     container.appendChild(div);
   });
 }
